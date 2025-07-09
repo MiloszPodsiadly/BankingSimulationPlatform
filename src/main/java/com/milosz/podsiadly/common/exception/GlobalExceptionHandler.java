@@ -69,4 +69,5 @@ public class GlobalExceptionHandler {
             this(status, message, timestamp, path, null);
         }
     }
+    // + Insufficient exception
 }

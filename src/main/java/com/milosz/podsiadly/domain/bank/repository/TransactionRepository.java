@@ -4,6 +4,7 @@ import com.milosz.podsiadly.domain.bank.model.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -14,4 +15,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findBySourceAccountIdOrTargetAccountIdOrderByTransactionDateDesc(Long sourceAccountId, Long targetAccountId);
     List<Transaction> findBySourceAccountIdAndTransactionDateBetween(Long sourceAccountId, LocalDateTime startDate, LocalDateTime endDate);
     List<Transaction> findByTargetAccountIdAndTransactionDateBetween(Long targetAccountId, LocalDateTime startDate, LocalDateTime endDate);
+    List<Transaction> findByTransactionDateBetween(LocalDateTime startDate, LocalDateTime endDate);
+    List<Transaction> findBySourceAccountIdAndAmountGreaterThanAndTransactionDateBetween(Long sourceAccountId, BigDecimal amount, LocalDateTime startDate, LocalDateTime endDate);
 }

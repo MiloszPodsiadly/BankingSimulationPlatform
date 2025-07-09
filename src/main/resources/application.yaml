@@ -14,7 +14,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate # W trybie deweloperskim można używać "update" (automatyczna aktualizacja schematu).
-        # W produkcji ZALECANE jest "none" lub "validate" w połączeniu z Flyway/Liquibase.
+      # W produkcji ZALECANE jest "none" lub "validate" w połączeniu z Flyway/Liquibase.
       # "validate" sprawdzi zgodność encji z istniejącym schematem, ale go nie zmodyfikuje.
     show-sql: true # Włącza logowanie zapytań SQL wysyłanych przez Hibernate (przydatne do debugowania)
     properties:
@@ -37,9 +37,8 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer # Deserializator dla wartości (JSON)
       auto-offset-reset: earliest # Strategia resetowania offsetu: 'earliest' (od początku topicu), 'latest' (od najnowszych wiadomości)
       properties: # Dodatkowe właściwości konsumenta
-        spring.json.trusted.packages: "com.bankingsimulationplatform.*" # Ważne: Lista zaufanych pakietów dla deserializatora JSON.
-          # Zapobiega błędom deserializacji, gdy klasy są w różnych pakietach.
-        # Upewnij się, że zawiera pakiet, w którym znajdują się Twoje klasy zdarzeń.
+        spring.json.trusted.packages: "com.milosz.podsiadly.*" # Ważne: Lista zaufanych pakietów dla deserializatora JSON.
+        # Upewnij się, że zawiera główny pakiet aplikacji.
   # --- Konfiguracja Spring Security OAuth2 Resource Server ---
   security:
     oauth2:
@@ -59,13 +58,13 @@ spring:
     # Upewnij się, że Twoje pliki .sql są w src/main/resources/db/migration.
     baseline-on-migrate: true # Opcjonalnie: Jeśli baza danych już istnieje i nie jest zarządzana przez Flyway,
       # ta opcja tworzy "baseline" (punkt startowy), aby Flyway zaczął śledzić migracje
-      # od tego momentu, bez próby uruchamiania wcześniejszych skryptów.
+    # od tego momentu, bez próby uruchamiania wcześniejszych skryptów.
     # Przydatne przy pierwszym uruchomieniu na istniejącej bazie.
 
 # --- Konfiguracja Logowania (Logback) ---
 logging:
   level:
-    com.bankingsimulationplatform: DEBUG # Ustawia poziom logowania dla Twoich pakietów na DEBUG (więcej szczegółów)
+    com.milosz.podsiadly: DEBUG # Ustawia poziom logowania dla Twoich pakietów na DEBUG (więcej szczegółów)
     org.springframework.web: INFO # Poziom INFO dla logów Spring Web
     org.hibernate: INFO # Poziom INFO dla logów Hibernate
     org.springframework.security: DEBUG # Włącza szczegółowe logowanie Spring Security (przydatne do debugowania autoryzacji)
@@ -105,3 +104,14 @@ management:
       application: ${spring.application.name} # Dodaje tag 'application' do wszystkich metryk z nazwą aplikacji
     distribution:
       percentiles-histogram.http.server.requests: true # Włącza histogramy dla czasów odpowiedzi HTTP
+
+# --- Konfiguracja API zewnętrznych dla modułu symulacji (NOWE DODATKI) ---
+api:
+  fixer:
+    base-url: http://data.fixer.io/api/latest # Bazowy URL dla Fixer.io API
+    access-key: YOUR_FIXER_API_KEY # KLUCZ API dla Fixer.io. Zastąp rzeczywistym kluczem!
+  news:
+    base-url: https://newsapi.org/v2/everything # Bazowy URL dla NewsAPI.org
+    api-key: YOUR_NEWSAPI_API_KEY # KLUCZ API dla NewsAPI.org. Zastąp rzeczywistym kluczem!
+  worldbank:
+    base-url: http://api.worldbank.org/v2/country/ # Bazowy URL dla World Bank API

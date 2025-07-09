@@ -51,6 +51,7 @@
         implementation 'org.mapstruct:mapstruct:1.5.5.Final'
         annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
         annotationProcessor 'org.mapstruct.extensions.spring:mapstruct-spring-extensions:1.0.0'
+        annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0' //Lombok here is before mapstruct
 
         // --- Narzędzia Deweloperskie ---
         developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -66,9 +67,9 @@
         testImplementation 'org.springframework.kafka:spring-kafka-test'
 
         //news after init
-        implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
-        runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
-        runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+        implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
+        runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
+        runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
         implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
         implementation 'org.springframework.boot:spring-boot-starter-validation'
         implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
