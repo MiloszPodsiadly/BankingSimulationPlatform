@@ -2,26 +2,34 @@ package com.milosz.podsiadly.common.util;
 
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
+import java.util.Date;
 
-public final class DateUtil {
+public class DateUtil {
 
-    public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
-    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
-
-    private DateUtil() {
-        // Utility class
+    public static Date convertToDateViaInstant(LocalDateTime dateToConvert) {
+        return Date.from(dateToConvert.atZone(ZoneId.systemDefault()).toInstant());
     }
 
-    public static String formatDateTime(LocalDateTime dateTime) {
-        return dateTime.format(DATE_TIME_FORMATTER);
+    public static LocalDateTime convertToLocalDateTimeViaInstant(Date dateToConvert) {
+        return dateToConvert.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
     }
 
-    public static LocalDateTime parseDateTime(String dateTimeString) {
-        return LocalDateTime.parse(dateTimeString, DATE_TIME_FORMATTER);
+    public static boolean isBeforeNow(Date date) {
+        return date != null && date.before(new Date());
     }
 
-    public static LocalDateTime now() {
-        return LocalDateTime.now();
+    public static boolean isAfterNow(Date date) {
+        return date != null && date.after(new Date());
+    }
+
+    public static Date addMinutes(Date date, int minutes) {
+        return Date.from(date.toInstant().plusSeconds(minutes * 60L));
+    }
+
+    public static Date addHours(Date date, int hours) {
+        return Date.from(date.toInstant().plusSeconds(hours * 3600L));
     }
 }

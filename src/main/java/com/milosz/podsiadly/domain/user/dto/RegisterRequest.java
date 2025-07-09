@@ -3,9 +3,11 @@ package com.milosz.podsiadly.domain.user.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import com.milosz.podsiadly.domain.user.model.Role.UserRole; // Corrected import for UserRole enum
+import com.milosz.podsiadly.domain.user.model.Role.UserRole;
+import com.milosz.podsiadly.common.validation.ValidPassword; // Import nowej adnotacji
+import com.milosz.podsiadly.common.validation.UniqueEmailValidator; // Import nowej adnotacji
 
-import java.util.Set; // For multiple roles
+import java.util.Set;
 
 public record RegisterRequest(
         @NotBlank(message = "Username cannot be blank")
@@ -13,11 +15,12 @@ public record RegisterRequest(
         String username,
 
         @NotBlank(message = "Password cannot be blank")
-        @Size(min = 8, message = "Password must be at least 8 characters long")
+        @ValidPassword // Dodajemy adnotację do walidacji złożoności hasła
         String password,
 
         @NotBlank(message = "Email cannot be blank")
         @Email(message = "Email should be valid")
+        @UniqueEmailValidator // Dodajemy adnotację do walidacji unikalności emaila
         String email,
 
         @NotBlank(message = "First name cannot be blank")
@@ -26,5 +29,5 @@ public record RegisterRequest(
         @NotBlank(message = "Last name cannot be blank")
         String lastName,
 
-        Set<UserRole> roles // Allow registration with multiple roles, default to CUSTOMER if empty
+        Set<UserRole> roles
 ) {}

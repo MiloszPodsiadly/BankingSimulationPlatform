@@ -6,39 +6,40 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.stereotype.Component;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-/**
- * Konwerter, który przekształca obiekt Jwt (zawierający roszczenia z tokenu JWT)
- * na obiekt JwtAuthenticationToken, który jest rozumiany przez Spring Security.
- * Odpowiada za mapowanie ról z tokenu JWT (np. z klucza "roles" lub "scope") na Spring Security GrantedAuthorities.
- */
-@Component
 public class CustomJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken> {
+
+    // Domyślny konwerter Spring Security dla zakresów (scopes) JWT
+    private final JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
 
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
-        Collection<GrantedAuthority> authorities = extractAuthorities(jwt);
-        return new JwtAuthenticationToken(jwt, authorities);
+        Collection<GrantedAuthority> authorities = Stream.concat(
+                jwtGrantedAuthoritiesConverter.convert(jwt).stream(), // Standardowe role z 'scope' lub 'scp'
+                extractRoles(jwt).stream() // Nasze niestandardowe role z 'roles' claim
+        ).collect(Collectors.toSet());
+
+        return new JwtAuthenticationToken(jwt, authorities, jwt.getClaimAsString("sub")); // Używamy "sub" jako nazwy użytkownika
     }
 
-    private Collection<GrantedAuthority> extractAuthorities(Jwt jwt) {
-        // Przykład: Role są przechowywane w claims jako lista stringów pod kluczem "roles"
-        // Jeśli Keycloak używa "realm_access.roles", musisz dostosować ścieżkę
-        Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
-        List<String> roles = (List<String>) realmAccess.get("roles");
-
-        if (roles == null) {
-            return List.of();
+    // Metoda do wyciągania ról z claimu "roles" (który dodaliśmy do naszego tokena JWT)
+    private Collection<? extends GrantedAuthority> extractRoles(Jwt jwt) {
+        // Zakładamy, że role są przechowywane w claimie "roles" jako lista stringów
+        Object roles = jwt.getClaim("roles");
+        if (roles instanceof Collection<?>) {
+            return ((Collection<?>) roles).stream()
+                    .map(Object::toString)
+                    .map(role -> new SimpleGrantedAuthority(role)) // Mapujemy role jako SimpleGrantedAuthority
+                    .collect(Collectors.toSet());
         }
-
-        return roles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())) // Dodaj prefiks ROLE_
-                .collect(Collectors.toList());
+        return new HashSet<>(); // Zwróć pusty zbiór, jeśli brak ról
     }
 }

@@ -1,28 +1,26 @@
 package com.milosz.podsiadly.common.util;
 
-import com.milosz.podsiadly.common.exception.InvalidInputException;
 
-public final class ValidationUtil {
+import java.util.regex.Pattern;
 
-    private ValidationUtil() {
-        // Utility class
+public class ValidationUtil {
+
+    // Example: Basic email pattern
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+            "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,6}$"
+    );
+
+    public static boolean isValidEmail(String email) {
+        return email != null && EMAIL_PATTERN.matcher(email).matches();
     }
 
-    public static void validateNotNull(Object obj, String fieldName) {
-        if (obj == null) {
-            throw new InvalidInputException(fieldName + " cannot be null.");
-        }
+    // Example: Basic strong password check (if not using @ValidPassword annotation)
+    // This is more of a fallback/alternative. The @ValidPassword is preferred for DTOs.
+    public static boolean isStrongPassword(String password) {
+        // At least 8 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special char
+        String regex = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&+=])(?=\\S+$).{8,}$";
+        return password != null && Pattern.compile(regex).matcher(password).matches();
     }
 
-    public static void validateNotBlank(String str, String fieldName) {
-        if (str == null || str.trim().isEmpty()) {
-            throw new InvalidInputException(fieldName + " cannot be null or empty.");
-        }
-    }
-
-    public static void validatePositive(Number number, String fieldName) {
-        if (number == null || number.doubleValue() <= 0) {
-            throw new InvalidInputException(fieldName + " must be positive.");
-        }
-    }
+    // Add other general validation methods here as needed
 }
