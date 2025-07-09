@@ -1,0 +1,107 @@
+# Konfiguracja główna aplikacji Spring Boot
+spring:
+  application:
+    name: banking-simulation-platform # Nazwa aplikacji, używana np. w logach i monitoringu
+
+  # --- Konfiguracja Bazy Danych PostgreSQL ---
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bank_simulation_db # Adres URL połączenia z bazą danych PostgreSQL
+    username: your_postgres_user # Zmień na nazwę użytkownika swojej bazy danych PostgreSQL
+    password: your_postgres_password # Zmień na hasło do bazy danych PostgreSQL
+    driver-class-name: org.postgresql.Driver # Klasa sterownika JDBC dla PostgreSQL
+
+  # --- Konfiguracja JPA (Hibernate) ---
+  jpa:
+    hibernate:
+      ddl-auto: validate # W trybie deweloperskim można używać "update" (automatyczna aktualizacja schematu).
+        # W produkcji ZALECANE jest "none" lub "validate" w połączeniu z Flyway/Liquibase.
+      # "validate" sprawdzi zgodność encji z istniejącym schematem, ale go nie zmodyfikuje.
+    show-sql: true # Włącza logowanie zapytań SQL wysyłanych przez Hibernate (przydatne do debugowania)
+    properties:
+      hibernate:
+        format_sql: true # Formatowanie logowanych zapytań SQL dla lepszej czytelności
+
+  # --- Konfiguracja Apache Kafka ---
+  kafka:
+    bootstrap-servers: localhost:9092 # Adresy brokerów Kafka. W środowisku lokalnym zazwyczaj 'localhost:9092'.
+    # W produkcji to lista adresów IP/nazw hostów.
+    producer: # Ustawienia dla producenta wiadomości Kafka
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer # Serializator dla kluczy wiadomości (np. String)
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # Serializator dla wartości wiadomości (JSON)
+      properties: # Dodatkowe właściwości producenta
+        spring.json.add.type.headers: false # Ważne: Wyłącza dodawanie nagłówków typu do JSON, co upraszcza deserializację
+        # i jest często preferowane przy użyciu własnych deserializatorów/rekordów.
+    consumer: # Ustawienia dla konsumenta wiadomości Kafka
+      group-id: banking-simulation-group # ID grupy konsumentów. Konsumenci w tej samej grupie dzielą partycje topicu.
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer # Deserializator dla kluczy
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer # Deserializator dla wartości (JSON)
+      auto-offset-reset: earliest # Strategia resetowania offsetu: 'earliest' (od początku topicu), 'latest' (od najnowszych wiadomości)
+      properties: # Dodatkowe właściwości konsumenta
+        spring.json.trusted.packages: "com.bankingsimulationplatform.*" # Ważne: Lista zaufanych pakietów dla deserializatora JSON.
+          # Zapobiega błędom deserializacji, gdy klasy są w różnych pakietach.
+        # Upewnij się, że zawiera pakiet, w którym znajdują się Twoje klasy zdarzeń.
+  # --- Konfiguracja Spring Security OAuth2 Resource Server ---
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # KLUCZOWE: Adres URI do JWKS (JSON Web Key Set) Twojego serwera autoryzacji (Identity Providera).
+          # Spring Security pobierze z niego klucze publiczne do weryfikacji podpisu tokenów JWT.
+          # PRZYKŁAD DLA KEYCLOAK:
+          # Jeśli używasz Keycloak uruchomionego lokalnie na porcie 8080 z domyślnym realmem "master",
+          # to ten adres jest poprawny. Zmień na swój realm i port, jeśli są inne.
+          jwk-set-uri: http://localhost:8080/realms/master/protocol/openid-connect/certs
+
+  # --- Konfiguracja Flyway (Migracje Bazy Danych) ---
+  flyway:
+    enabled: true # Włącza Flyway. Jeśli ustawisz na false, migracje nie będą uruchamiane.
+    locations: classpath:db/migration # Ścieżka do katalogu ze skryptami migracji SQL.
+    # Upewnij się, że Twoje pliki .sql są w src/main/resources/db/migration.
+    baseline-on-migrate: true # Opcjonalnie: Jeśli baza danych już istnieje i nie jest zarządzana przez Flyway,
+      # ta opcja tworzy "baseline" (punkt startowy), aby Flyway zaczął śledzić migracje
+      # od tego momentu, bez próby uruchamiania wcześniejszych skryptów.
+    # Przydatne przy pierwszym uruchomieniu na istniejącej bazie.
+
+# --- Konfiguracja Logowania (Logback) ---
+logging:
+  level:
+    com.bankingsimulationplatform: DEBUG # Ustawia poziom logowania dla Twoich pakietów na DEBUG (więcej szczegółów)
+    org.springframework.web: INFO # Poziom INFO dla logów Spring Web
+    org.hibernate: INFO # Poziom INFO dla logów Hibernate
+    org.springframework.security: DEBUG # Włącza szczegółowe logowanie Spring Security (przydatne do debugowania autoryzacji)
+    org.springframework.kafka: INFO # Poziom INFO dla logów Spring Kafka
+
+# --- Konfiguracja Własnych Właściwości Aplikacji ---
+app:
+  jwt:
+    # Sekretny klucz do podpisywania tokenów JWT generowanych wewnętrznie przez aplikację (np. dla JwtTokenProvider).
+    # WAŻNE: W produkcji ten klucz powinien być DŁUGI, KRYPTOGRAFICZNIE SILNY i przechowywany bezpiecznie (np. w Vault).
+    # Nigdy nie umieszczaj go bezpośrednio w repozytorium w produkcji!
+    secret: yourSuperSecretKeyForInternalJwtSigningDoNotUseInProd # Użyj silnego, długiego klucza!
+    expiration-ms: 86400000 # Czas ważności tokenu w milisekundach (24 godziny)
+
+# --- Konfiguracja Springdoc OpenAPI (Swagger UI) ---
+# Umożliwia automatyczne generowanie dokumentacji API i interfejsu Swagger UI.
+# Dostępne pod adresami:
+# - /v3/api-docs (JSON/YAML)
+# - /swagger-ui.html lub /swagger-ui/index.html (interfejs graficzny)
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html # Ścieżka dostępu do interfejsu Swagger UI (np. http://localhost:8080/swagger-ui.html)
+    disable-swagger-default-url: true # Wyłącza domyślny URL Swaggera, jeśli chcesz używać tylko własnego
+    display-request-duration: true # Pokazuje czas trwania żądania w UI
+  api-docs:
+    path: /v3/api-docs # Ścieżka dostępu do dokumentacji API w formacie JSON/YAML
+
+# --- Konfiguracja Micrometer/Prometheus (Monitoring) ---
+# Umożliwia eksponowanie metryk aplikacji w formacie zrozumiałym dla Prometheus.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus # Włącza endpointy health, info i prometheus dla Actuatora
+  metrics:
+    tags:
+      application: ${spring.application.name} # Dodaje tag 'application' do wszystkich metryk z nazwą aplikacji
+    distribution:
+      percentiles-histogram.http.server.requests: true # Włącza histogramy dla czasów odpowiedzi HTTP
