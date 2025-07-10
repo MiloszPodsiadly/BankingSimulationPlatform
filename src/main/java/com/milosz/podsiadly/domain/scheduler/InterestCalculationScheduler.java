@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class InterestCalculationScheduler {
 
-    private final AccountService accountService; // Serwis odpowiedzialny za logikę kont bankowych
+    private final AccountService accountService;
 
     /**
      * Scheduled task to calculate and apply interest to bank accounts.
