@@ -64,10 +64,12 @@ public class NewsApiClientImpl implements NewsApiClient {
             throw new NewsApiException(errorMessage);
         }
     }
-
+    /*
     @Override
     public NewsApiResponse getArticlesEverything(String query, String language, Integer pageSize, Integer page) {
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(baseUrl + "/v2/everything");
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder
+                .fromUriString(baseUrl)
+                .path("/everything"); // 🔧 poprawka
 
         if (query != null && !query.isBlank()) {
             uriBuilder.queryParam("q", query);
@@ -84,10 +86,12 @@ public class NewsApiClientImpl implements NewsApiClient {
 
         return executeApiCall(uriBuilder, "everything");
     }
-
+*/
     @Override
     public NewsApiResponse getTopHeadlines(String country, String category, Integer pageSize, Integer page) {
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(baseUrl + "/v2/top-headlines");
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder
+                .fromUriString(baseUrl)
+                .path("/top-headlines"); // 🔧 poprawka
 
         if (country != null && !country.isBlank()) {
             uriBuilder.queryParam("country", country);

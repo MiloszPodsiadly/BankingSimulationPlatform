@@ -132,7 +132,8 @@ public class EconomicDataService {
         String cacheKey = countryCode + "_" + indicatorCode;
         return Optional.ofNullable(cachedEconomicData.get(cacheKey))
                 .map(WorldBankIndicatorData::value)
-                .map(BigDecimal::valueOf);
+                .filter(value -> value != null && !value.isBlank())
+                .map(BigDecimal::new);
     }
 
     // Helper record for default indicator configuration

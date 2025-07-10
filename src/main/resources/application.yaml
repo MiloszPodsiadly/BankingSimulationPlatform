@@ -151,13 +151,13 @@ logging:
 
 api:
   fixer:
-    base-url: http://localhost/mock-fixer
-    access-key: dummy-key
+    base-url: https://data.fixer.io/api
+    access-key: 0f6dba835e80e3c90fdfa8f7aaf7e2e3
   news:
-    base-url: http://localhost/mock-news
-    api-key: dummy-key
+    base-url: https://newsapi.org/v2
+    api-key: f4c7a0b361fd4e70b0004e9c0b0abfe6
   worldbank:
-    base-url: http://localhost/mock-worldbank
+    base-url: https://api.worldbank.org/v2
 
 app:
   jwt:

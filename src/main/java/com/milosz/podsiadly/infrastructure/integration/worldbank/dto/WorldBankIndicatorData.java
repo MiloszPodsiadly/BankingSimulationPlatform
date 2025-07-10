@@ -8,7 +8,7 @@ public record WorldBankIndicatorData(
         CountryId country,
         @JsonProperty("countryiso3code") String countryIso3Code,
         String date,
-        Double value,
+        @JsonProperty("value") String value, // lub Double + custom deserializer
         String unit,
         @JsonProperty("obs_status") String obsStatus,
         Integer decimal

@@ -44,8 +44,8 @@ public class FinancialNewsService {
 
         try {
             // --- ZMIANA 4: Wywołanie odpowiedniej metody z NewsApiClient ---
-            // newsApiClient.getArticlesEverything zwraca NewsApiResponse
-            NewsApiResponse response = newsApiClient.getArticlesEverything(query, "en", pageSize, page);
+            // newsApiClient.getArticlesEverything zwraca NewsApiResponse zmienione na gettopheadlines
+            NewsApiResponse response = newsApiClient.getTopHeadlines(query, "en", pageSize, page);
 
             // --- ZMIANA 5: Ulepszona logika przetwarzania odpowiedzi NewsAPI ---
             if (response != null && "ok".equalsIgnoreCase(response.status()) && response.articles() != null) {
