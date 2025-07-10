@@ -19,6 +19,7 @@ import com.milosz.podsiadly.domain.bank.service.BankService; // Import BankServi
 import jakarta.annotation.PostConstruct; // Import for @PostConstruct
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
+import org.springframework.context.event.EventListener;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
@@ -51,7 +53,7 @@ public class ScenarioGenerator {
      * Initializes the default bank ID for simulations.
      * This method runs after dependency injection is complete.
      */
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
     public void init() {
         // Try to get an existing bank or create one if none exists
         List<com.milosz.podsiadly.domain.bank.model.Bank> banks = bankService.getAllBanks();

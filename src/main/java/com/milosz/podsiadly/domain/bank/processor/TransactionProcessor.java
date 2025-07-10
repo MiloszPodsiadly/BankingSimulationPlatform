@@ -1,6 +1,5 @@
 package com.milosz.podsiadly.domain.bank.processor;
 
-
 import com.milosz.podsiadly.domain.bank.model.Transaction;
 import com.milosz.podsiadly.domain.bank.repository.TransactionRepository;
 import com.milosz.podsiadly.core.event.TransactionCompletedEvent;
@@ -11,9 +10,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-// Klasy eventowe (TransactionCompletedEvent, TransactionFailedEvent) muszą istnieć w com.milsoz.podsiadly.domain.core.events
-// Poniżej znajdziesz ich proste definicje, jeśli ich jeszcze nie masz.
 
 @Component
 public class TransactionProcessor {
@@ -32,7 +28,8 @@ public class TransactionProcessor {
     @Async // Opcjonalnie, aby zdarzenia były przetwarzane asynchronicznie
     @Transactional // Użyj transakcji, jeśli zmieniasz stan encji
     public void handleTransactionCompletedEvent(TransactionCompletedEvent event) {
-        log.info("Otrzymano zdarzenie TransactionCompletedEvent dla transakcji ID: {}, Ref: {}", event.getTransactionId(), event.getTransactionRef());
+        // Zmieniono event.getTransactionRef() na event.getTransactionId()
+        log.info("Otrzymano zdarzenie TransactionCompletedEvent dla transakcji ID: {}", event.getTransactionId());
         // Tutaj można by zaimplementować logikę biznesową, np.:
         // 1. Wysłać powiadomienie do użytkownika.
         // 2. Zaktualizować statystyki banku.
@@ -44,7 +41,8 @@ public class TransactionProcessor {
             if (transaction.getStatus() != Transaction.TransactionStatus.COMPLETED) {
                 transaction.setStatus(Transaction.TransactionStatus.COMPLETED);
                 transactionRepository.save(transaction);
-                log.info("Zaktualizowano status transakcji {} na COMPLETED.", event.getTransactionRef());
+                // Zmieniono event.getTransactionRef() na event.getTransactionId()
+                log.info("Zaktualizowano status transakcji {} na COMPLETED.", event.getTransactionId());
             }
         });
     }
@@ -53,7 +51,8 @@ public class TransactionProcessor {
     @Async // Opcjonalnie
     @Transactional // Użyj transakcji, jeśli zmieniasz stan encji
     public void handleTransactionFailedEvent(TransactionFailedEvent event) {
-        log.error("Otrzymano zdarzenie TransactionFailedEvent dla transakcji ID: {}, Ref: {}. Powód: {}", event.getTransactionId(), event.getTransactionRef(), event.getReason());
+        // Zmieniono event.getTransactionRef() na event.getTransactionId()
+        log.error("Otrzymano zdarzenie TransactionFailedEvent dla transakcji ID: {}. Powód: {}", event.getTransactionId(), event.getReason());
         // Tutaj można by zaimplementować logikę obsługi błędów, np.:
         // 1. Zapisanie szczegółów błędu do logów błędów.
         // 2. Powiadomienie administratorów.
@@ -62,9 +61,11 @@ public class TransactionProcessor {
         transactionRepository.findById(event.getTransactionId()).ifPresent(transaction -> {
             if (transaction.getStatus() != Transaction.TransactionStatus.FAILED) {
                 transaction.setStatus(Transaction.TransactionStatus.FAILED);
-                transaction.setDescription(transaction.getDescription() + " (Failed: " + event.getReason() + ")");
+                // Upewnij się, że pole description jest wystarczająco długie lub obsłuż to inaczej
+                transaction.setDescription(transaction.getDescription() != null ? transaction.getDescription() + " (Failed: " + event.getReason() + ")" : "Failed: " + event.getReason());
                 transactionRepository.save(transaction);
-                log.info("Zaktualizowano status transakcji {} na FAILED.", event.getTransactionRef());
+                // Zmieniono event.getTransactionRef() na event.getTransactionId()
+                log.info("Zaktualizowano status transakcji {} na FAILED.", event.getTransactionId());
             }
         });
     }

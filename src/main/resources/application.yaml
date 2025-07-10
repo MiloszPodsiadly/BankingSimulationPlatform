@@ -2,7 +2,12 @@
 spring:
   application:
     name: banking-simulation-platform # Nazwa aplikacji, używana np. w logach i monitoringu
+  profiles:
+    active: dev
 
+---
+# Profil: dev (domyślny)
+# Ta sekcja będzie aktywna, gdy profil 'dev' jest aktywny (lub gdy żaden profil nie jest aktywny)
 ---
 # Profil: dev (domyślny)
 spring:
@@ -11,7 +16,7 @@ spring:
       on-profile: dev
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/bank_simulation_db
+    url: jdbc:postgresql://postgres:5432/bank_simulation_db
     username: kodilla_user
     password: kodilla_password
     driver-class-name: org.postgresql.Driver
@@ -25,7 +30,7 @@ spring:
         format_sql: true
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: kafka:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -38,61 +43,41 @@ spring:
       auto-offset-reset: earliest
       properties:
         spring.json.trusted.packages: "com.milosz.podsiadly.*"
+    topics:
+      account-created: banking.events.account-created
+      transaction-completed: banking.events.transaction-completed
+      transaction-failed: banking.events.transaction-failed
+      user-registered: banking.events.user-registered
+      simulation-step: banking.events.simulation-step
 
   security:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: http://localhost:8080/realms/master/protocol/openid-connect/certs
+          jwk-set-uri: http://keycloak:8080/realms/master/protocol/openid-connect/certs
 
   flyway:
-    enabled: true
+    enabled: false
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-logging:
-  level:
-    com.milosz.podsiadly: DEBUG
-    org.springframework.web: INFO
-    org.hibernate: INFO
-    org.springframework.security: DEBUG
-    org.springframework.kafka: INFO
+# Konfiguracje API specyficzne dla profilu 'dev'
+api:
+  fixer:
+    base-url: https://data.fixer.io/api
+    access-key: 0f6dba835e80e3c90fdfa8f7aaf7e2e3
+  news:
+    base-url: https://newsapi.org/v2
+    api-key: f4c7a0b361fd4e70b0004e9c0b0abfe6
+  worldbank:
+    base-url: https://api.worldbank.org/v2
 
+# Konfiguracje JWT specyficzne dla profilu 'dev'
 app:
   jwt:
     secret: yourSuperSecretKeyForInternalJwtSigningDoNotUseInProd
     expiration-ms: 86400000
-    refresh-expiration-ms: 172800000 # ✅ DODANE
-
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-    disable-swagger-default-url: true
-    display-request-duration: true
-  api-docs:
-    path: /v3/api-docs
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,prometheus
-  metrics:
-    tags:
-      application: ${spring.application.name}
-    distribution:
-      percentiles-histogram.http.server.requests: true
-
-api:
-  fixer:
-    base-url: http://data.fixer.io/api/latest
-    access-key: YOUR_FIXER_API_KEY
-  news:
-    base-url: https://newsapi.org/v2/everything
-    api-key: YOUR_NEWSAPI_API_KEY
-  worldbank:
-    base-url: http://api.worldbank.org/v2/country/
-
+    refresh-expiration-ms: 172800000
 ---
 # Profil: test
 spring:
@@ -128,6 +113,24 @@ spring:
 
   kafka:
     bootstrap-servers: dummy:9092
+    consumer:
+      group-id: banking-simulation-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "com.milosz.podsiadly.*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    topics:
+      account-created: banking.events.test.account-created
+      transaction-completed: banking.events.test.transaction-completed
+      transaction-failed: banking.events.test.transaction-failed
+      user-registered: banking.events.test.user-registered
+      simulation-step: banking.events.test.simulation-step
 
   security:
     oauth2:
@@ -160,4 +163,4 @@ app:
   jwt:
     secret: testSecretKey
     expiration-ms: 3600000
-    refresh-expiration-ms: 172800000 # ✅ DODANE
+    refresh-expiration-ms: 172800000
