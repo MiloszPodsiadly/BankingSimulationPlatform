@@ -37,6 +37,7 @@
         runtimeOnly 'org.postgresql:postgresql'
         implementation 'org.flywaydb:flyway-core'
 
+
         // --- Bezpieczeństwo (Spring Security, OAuth2, JWT) ---
         implementation 'org.springframework.boot:spring-boot-starter-security'
         implementation 'org.springframework.security:spring-security-oauth2-resource-server'
@@ -77,6 +78,8 @@
         implementation 'io.micrometer:micrometer-registry-prometheus'
         implementation 'org.springframework.boot:spring-boot-starter-aop'
         implementation 'org.apache.commons:commons-compress:1.26.0'
+        testImplementation 'com.h2database:h2:2.2.220'
+        runtimeOnly 'com.h2database:h2:2.2.220'
     }
 
     tasks.named('test') {

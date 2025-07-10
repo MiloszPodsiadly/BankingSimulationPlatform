@@ -19,6 +19,10 @@ public interface AccountMapper {
     @Mapping(target = "bank", ignore = true) // Bank będzie ustawiony ręcznie w serwisie
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    // USUNIĘTO LINIĘ: @Mapping(source = "accountType", target = "accountType")
+    // ZAMIAST TEGO: Ignorujemy accountType, bo AccountDto go nie posiada.
+    // BĘDZIE MUSIAŁO BYĆ USTAWIENIE RĘCZNIE W SERWISIE.
+    @Mapping(target = "accountType", ignore = true) // Dodaj tę linię, aby MapStruct zignorował to pole
     BankAccount toEntity(AccountDto accountDto);
 
     // Jeśli chcesz aktualizować encję z DTO

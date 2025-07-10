@@ -2,6 +2,7 @@ package com.milosz.podsiadly.domain.bank.service;
 
 import com.milosz.podsiadly.common.exception.InsufficientFundsException;
 import com.milosz.podsiadly.common.exception.ResourceNotFoundException;
+import com.milosz.podsiadly.domain.bank.dto.TransactionRequest;
 import com.milosz.podsiadly.domain.bank.model.BankAccount;
 import com.milosz.podsiadly.domain.bank.model.Transaction;
 import com.milosz.podsiadly.domain.bank.repository.BankAccountRepository;
@@ -10,6 +11,7 @@ import com.milosz.podsiadly.core.event.TransactionCompletedEvent;
 import com.milosz.podsiadly.core.event.TransactionFailedEvent;
 import com.milosz.podsiadly.domain.compliance.model.AuditLog;
 import com.milosz.podsiadly.domain.compliance.service.AuditService;
+import com.milosz.podsiadly.domain.bank.mapper.TransactionMapper;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +34,8 @@ public class TransactionService {
     private final BankAccountRepository bankAccountRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final AuditService auditService;
+    private final TransactionMapper transactionMapper;
+
 
 
 
@@ -323,5 +327,34 @@ public class TransactionService {
                 .build();
 
         return processTransaction(newTransaction);
+    }
+    @Transactional
+    public Transaction processTransfer(TransactionRequest request) {
+        // 1. Zmapuj TransactionRequest do encji Transaction (zignorowane pola są puste)
+        Transaction transaction = transactionMapper.toEntity(request);
+
+        // 2. Pobierz konta bankowe na podstawie ID/numerów z requestu
+        BankAccount sourceAccount = bankAccountRepository.findById(request.sourceAccountId())
+                .orElseThrow(() -> new RuntimeException("Source account not found"));
+        // W przypadku targetAccountNumber, musisz znaleźć BankAccount po accountNumber
+        BankAccount targetAccount = bankAccountRepository.findByAccountNumber(request.targetAccountNumber())
+                .orElseThrow(() -> new RuntimeException("Target account not found"));
+
+        // 3. Ustaw brakujące pola w encji Transaction
+        transaction.setSourceAccount(sourceAccount);
+        transaction.setTargetAccount(targetAccount);
+        transaction.setType(Transaction.TransactionType.TRANSFER); // Ustaw typ transakcji
+        transaction.setStatus(Transaction.TransactionStatus.PENDING); // Ustaw początkowy status
+        // transaction.setTransactionDate() jest ustawiane w @PrePersist, ale możesz je ustawić tu, jeśli chcesz
+        // transaction.setTransactionRef() również powinien być ustawiony tutaj (np. UUID.randomUUID().toString())
+
+        // 4. Wykonaj logikę biznesową (walidacja, aktualizacja sald, itd.)
+        // np. sourceAccount.setBalance(sourceAccount.getBalance().subtract(request.amount()));
+        //      targetAccount.setBalance(targetAccount.getBalance().add(request.amount()));
+        // bankAccountRepository.save(sourceAccount);
+        // bankAccountRepository.save(targetAccount);
+
+        // 5. Zapisz transakcję
+        return transactionRepository.save(transaction); // Załóżmy, że masz transactionRepository
     }
 }

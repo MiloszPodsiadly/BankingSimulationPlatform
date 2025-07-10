@@ -3,115 +3,161 @@ spring:
   application:
     name: banking-simulation-platform # Nazwa aplikacji, używana np. w logach i monitoringu
 
-  # --- Konfiguracja Bazy Danych PostgreSQL ---
-  datasource:
-    url: jdbc:postgresql://localhost:5432/bank_simulation_db # Adres URL połączenia z bazą danych PostgreSQL
-    username: your_postgres_user # Zmień na nazwę użytkownika swojej bazy danych PostgreSQL
-    password: your_postgres_password # Zmień na hasło do bazy danych PostgreSQL
-    driver-class-name: org.postgresql.Driver # Klasa sterownika JDBC dla PostgreSQL
+---
+# Profil: dev (domyślny)
+spring:
+  config:
+    activate:
+      on-profile: dev
 
-  # --- Konfiguracja JPA (Hibernate) ---
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bank_simulation_db
+    username: kodilla_user
+    password: kodilla_password
+    driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
-      ddl-auto: validate # W trybie deweloperskim można używać "update" (automatyczna aktualizacja schematu).
-      # W produkcji ZALECANE jest "none" lub "validate" w połączeniu z Flyway/Liquibase.
-      # "validate" sprawdzi zgodność encji z istniejącym schematem, ale go nie zmodyfikuje.
-    show-sql: true # Włącza logowanie zapytań SQL wysyłanych przez Hibernate (przydatne do debugowania)
+      ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
-        format_sql: true # Formatowanie logowanych zapytań SQL dla lepszej czytelności
+        format_sql: true
 
-  # --- Konfiguracja Apache Kafka ---
   kafka:
-    bootstrap-servers: localhost:9092 # Adresy brokerów Kafka. W środowisku lokalnym zazwyczaj 'localhost:9092'.
-    # W produkcji to lista adresów IP/nazw hostów.
-    producer: # Ustawienia dla producenta wiadomości Kafka
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer # Serializator dla kluczy wiadomości (np. String)
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer # Serializator dla wartości wiadomości (JSON)
-      properties: # Dodatkowe właściwości producenta
-        spring.json.add.type.headers: false # Ważne: Wyłącza dodawanie nagłówków typu do JSON, co upraszcza deserializację
-        # i jest często preferowane przy użyciu własnych deserializatorów/rekordów.
-    consumer: # Ustawienia dla konsumenta wiadomości Kafka
-      group-id: banking-simulation-group # ID grupy konsumentów. Konsumenci w tej samej grupie dzielą partycje topicu.
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer # Deserializator dla kluczy
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer # Deserializator dla wartości (JSON)
-      auto-offset-reset: earliest # Strategia resetowania offsetu: 'earliest' (od początku topicu), 'latest' (od najnowszych wiadomości)
-      properties: # Dodatkowe właściwości konsumenta
-        spring.json.trusted.packages: "com.milosz.podsiadly.*" # Ważne: Lista zaufanych pakietów dla deserializatora JSON.
-        # Upewnij się, że zawiera główny pakiet aplikacji.
-  # --- Konfiguracja Spring Security OAuth2 Resource Server ---
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: banking-simulation-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "com.milosz.podsiadly.*"
+
   security:
     oauth2:
       resourceserver:
         jwt:
-          # KLUCZOWE: Adres URI do JWKS (JSON Web Key Set) Twojego serwera autoryzacji (Identity Providera).
-          # Spring Security pobierze z niego klucze publiczne do weryfikacji podpisu tokenów JWT.
-          # PRZYKŁAD DLA KEYCLOAK:
-          # Jeśli używasz Keycloak uruchomionego lokalnie na porcie 8080 z domyślnym realmem "master",
-          # to ten adres jest poprawny. Zmień na swój realm i port, jeśli są inne.
           jwk-set-uri: http://localhost:8080/realms/master/protocol/openid-connect/certs
 
-  # --- Konfiguracja Flyway (Migracje Bazy Danych) ---
   flyway:
-    enabled: true # Włącza Flyway. Jeśli ustawisz na false, migracje nie będą uruchamiane.
-    locations: classpath:db/migration # Ścieżka do katalogu ze skryptami migracji SQL.
-    # Upewnij się, że Twoje pliki .sql są w src/main/resources/db/migration.
-    baseline-on-migrate: true # Opcjonalnie: Jeśli baza danych już istnieje i nie jest zarządzana przez Flyway,
-      # ta opcja tworzy "baseline" (punkt startowy), aby Flyway zaczął śledzić migracje
-    # od tego momentu, bez próby uruchamiania wcześniejszych skryptów.
-    # Przydatne przy pierwszym uruchomieniu na istniejącej bazie.
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
 
-# --- Konfiguracja Logowania (Logback) ---
 logging:
   level:
-    com.milosz.podsiadly: DEBUG # Ustawia poziom logowania dla Twoich pakietów na DEBUG (więcej szczegółów)
-    org.springframework.web: INFO # Poziom INFO dla logów Spring Web
-    org.hibernate: INFO # Poziom INFO dla logów Hibernate
-    org.springframework.security: DEBUG # Włącza szczegółowe logowanie Spring Security (przydatne do debugowania autoryzacji)
-    org.springframework.kafka: INFO # Poziom INFO dla logów Spring Kafka
+    com.milosz.podsiadly: DEBUG
+    org.springframework.web: INFO
+    org.hibernate: INFO
+    org.springframework.security: DEBUG
+    org.springframework.kafka: INFO
 
-# --- Konfiguracja Własnych Właściwości Aplikacji ---
 app:
   jwt:
-    # Sekretny klucz do podpisywania tokenów JWT generowanych wewnętrznie przez aplikację (np. dla JwtTokenProvider).
-    # WAŻNE: W produkcji ten klucz powinien być DŁUGI, KRYPTOGRAFICZNIE SILNY i przechowywany bezpiecznie (np. w Vault).
-    # Nigdy nie umieszczaj go bezpośrednio w repozytorium w produkcji!
-    secret: yourSuperSecretKeyForInternalJwtSigningDoNotUseInProd # Użyj silnego, długiego klucza!
-    expiration-ms: 86400000 # Czas ważności tokenu w milisekundach (24 godziny)
+    secret: yourSuperSecretKeyForInternalJwtSigningDoNotUseInProd
+    expiration-ms: 86400000
+    refresh-expiration-ms: 172800000 # ✅ DODANE
 
-# --- Konfiguracja Springdoc OpenAPI (Swagger UI) ---
-# Umożliwia automatyczne generowanie dokumentacji API i interfejsu Swagger UI.
-# Dostępne pod adresami:
-# - /v3/api-docs (JSON/YAML)
-# - /swagger-ui.html lub /swagger-ui/index.html (interfejs graficzny)
 springdoc:
   swagger-ui:
-    path: /swagger-ui.html # Ścieżka dostępu do interfejsu Swagger UI (np. http://localhost:8080/swagger-ui.html)
-    disable-swagger-default-url: true # Wyłącza domyślny URL Swaggera, jeśli chcesz używać tylko własnego
-    display-request-duration: true # Pokazuje czas trwania żądania w UI
+    path: /swagger-ui.html
+    disable-swagger-default-url: true
+    display-request-duration: true
   api-docs:
-    path: /v3/api-docs # Ścieżka dostępu do dokumentacji API w formacie JSON/YAML
+    path: /v3/api-docs
 
-# --- Konfiguracja Micrometer/Prometheus (Monitoring) ---
-# Umożliwia eksponowanie metryk aplikacji w formacie zrozumiałym dla Prometheus.
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus # Włącza endpointy health, info i prometheus dla Actuatora
+        include: health,info,prometheus
   metrics:
     tags:
-      application: ${spring.application.name} # Dodaje tag 'application' do wszystkich metryk z nazwą aplikacji
+      application: ${spring.application.name}
     distribution:
-      percentiles-histogram.http.server.requests: true # Włącza histogramy dla czasów odpowiedzi HTTP
+      percentiles-histogram.http.server.requests: true
 
-# --- Konfiguracja API zewnętrznych dla modułu symulacji (NOWE DODATKI) ---
 api:
   fixer:
-    base-url: http://data.fixer.io/api/latest # Bazowy URL dla Fixer.io API
-    access-key: YOUR_FIXER_API_KEY # KLUCZ API dla Fixer.io. Zastąp rzeczywistym kluczem!
+    base-url: http://data.fixer.io/api/latest
+    access-key: YOUR_FIXER_API_KEY
   news:
-    base-url: https://newsapi.org/v2/everything # Bazowy URL dla NewsAPI.org
-    api-key: YOUR_NEWSAPI_API_KEY # KLUCZ API dla NewsAPI.org. Zastąp rzeczywistym kluczem!
+    base-url: https://newsapi.org/v2/everything
+    api-key: YOUR_NEWSAPI_API_KEY
   worldbank:
-    base-url: http://api.worldbank.org/v2/country/ # Bazowy URL dla World Bank API
+    base-url: http://api.worldbank.org/v2/country/
+
+---
+# Profil: test
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  application:
+    name: banking-simulation-platform-test
+
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    user: sa
+    password:
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  kafka:
+    bootstrap-servers: dummy:9092
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8080/dummy-jwk
+
+management:
+  metrics:
+    tags:
+      application: ${spring.application.name:banking-simulation-platform-test}
+
+logging:
+  level:
+    org.springframework.web: INFO
+    org.hibernate: INFO
+    org.flywaydb: DEBUG
+
+api:
+  fixer:
+    base-url: http://localhost/mock-fixer
+    access-key: dummy-key
+  news:
+    base-url: http://localhost/mock-news
+    api-key: dummy-key
+  worldbank:
+    base-url: http://localhost/mock-worldbank
+
+app:
+  jwt:
+    secret: testSecretKey
+    expiration-ms: 3600000
+    refresh-expiration-ms: 172800000 # ✅ DODANE

@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets;
 public class ResourceServerConfig {
 
     // Wstrzyknij sekret JWT z properties, używany do weryfikacji tokenów
-    @Value("${app.jwtSecret}")
+    @Value("${app.jwt.secret}")
     private String jwtSecret;
 
     // Możesz usunąć tę klasę, jeśli SecurityConfig już konfiguruje SecurityFilterChain
