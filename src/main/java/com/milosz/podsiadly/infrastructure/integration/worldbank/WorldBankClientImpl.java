@@ -41,6 +41,7 @@ public class WorldBankClientImpl implements WorldBankClient {
         this.baseUrl = baseUrl;
         this.objectMapper = objectMapper;
     }
+
     @PostConstruct
     public void logStartupInfo() {
         log.info("Active profile: {}", System.getProperty("spring.profiles.active"));
@@ -53,13 +54,21 @@ public class WorldBankClientImpl implements WorldBankClient {
             throw new IllegalArgumentException("Country code and indicator ID cannot be null or empty.");
         }
 
-        // Budowanie URI z parametrami
+        // 💡 FIX 1: Sanitize dateFrom/dateTo to remove "json:" if accidentally passed in
+        if (dateFrom != null && dateFrom.startsWith("json:")) {
+            dateFrom = dateFrom.replace("json:", "");
+        }
+        if (dateTo != null && dateTo.startsWith("json:")) {
+            dateTo = dateTo.replace("json:", "");
+        }
+
+        // Building URI
         UriComponentsBuilder uriBuilder = UriComponentsBuilder
                 .fromUriString(baseUrl + "/country/{countryCode}/indicator/{indicatorId}")
                 .queryParam("format", "json");
 
         if (dateFrom != null && !dateFrom.isBlank() && dateTo != null && !dateTo.isBlank()) {
-            uriBuilder.queryParam("date", dateFrom + ":" + dateTo);
+            uriBuilder.queryParam("date", dateFrom + ":" + dateTo);  // ✅ valid syntax
         } else if (dateFrom != null && !dateFrom.isBlank()) {
             uriBuilder.queryParam("date", dateFrom);
         } else if (dateTo != null && !dateTo.isBlank()) {
@@ -91,36 +100,34 @@ public class WorldBankClientImpl implements WorldBankClient {
             }
 
             JsonNode jsonNode = objectMapper.readTree(rawJson);
+
+            // 💡 FIX 2: Handle case when response is not array (error message from API)
             if (!jsonNode.isArray()) {
-                log.error("Unexpected JSON structure (not an array) from World Bank API for {}-{}: {}", countryCode, indicatorId, rawJson);
-                throw new WorldBankApiException("Unexpected JSON structure (not array). Possibly an API error: " + rawJson);
+                if (jsonNode.has("message")) {
+                    String errorMsg = jsonNode.get("message").toString();
+                    log.error("World Bank API returned error: {}", errorMsg);
+                    throw new WorldBankApiException("World Bank API error: " + errorMsg);
+                }
+
+                log.error("Unexpected JSON structure (not an array): {}", rawJson);
+                throw new WorldBankApiException("Unexpected JSON structure (not array): " + rawJson);
             }
 
-            // Parsowanie na List<List<Object>>
-            List<List<Object>> parsedResponse = objectMapper.convertValue(jsonNode, new TypeReference<>() {});
-
+            // 💡 FIX 3: Convert array structure safely
+            List<JsonNode> parsedResponse = objectMapper.convertValue(jsonNode, new TypeReference<>() {});
             Optional<WorldBankMetadata> metadata = Optional.empty();
             List<WorldBankIndicatorData> data = Collections.emptyList();
 
-            if (parsedResponse.size() > 0 && parsedResponse.get(0) instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> metaMap = (Map<String, Object>) parsedResponse.get(0);
-                metadata = Optional.of(objectMapper.convertValue(metaMap, WorldBankMetadata.class));
+            if (parsedResponse.size() > 0 && parsedResponse.get(0).isObject()) {
+                metadata = Optional.of(objectMapper.convertValue(parsedResponse.get(0), WorldBankMetadata.class));
             }
 
-            if (parsedResponse.size() > 1 && parsedResponse.get(1) instanceof List) {
-                List<?> rawDataList = (List<?>) parsedResponse.get(1);
-
-                List<Map<String, Object>> dataList = rawDataList.stream()
-                        .filter(item -> item instanceof Map)
-                        .map(item -> (Map<String, Object>) item)
-                        .toList();
-
+            if (parsedResponse.size() > 1 && parsedResponse.get(1).isArray()) {
+                List<Map<String, Object>> dataList = objectMapper.convertValue(
+                        parsedResponse.get(1),
+                        new TypeReference<List<Map<String, Object>>>() {}
+                );
                 data = objectMapper.convertValue(dataList, new TypeReference<List<WorldBankIndicatorData>>() {});
-            }
-
-            if (metadata.isPresent() && metadata.get().total() != null && metadata.get().total() == 0 && data.isEmpty()) {
-                log.info("No data found for indicator {} in country {}.", indicatorId, countryCode);
             }
 
             return new WorldBankResponse(metadata, data);
