@@ -24,7 +24,9 @@ public class BankAccount {
 
     @Column(nullable = false)
     private Long userId; // Foreign key to the User entity (assuming User is in a different domain or managed separately)
-
+    // --- NEW FIELD ---
+    @Column(nullable = false) // Assuming accountType is mandatory
+    private String accountType; // e.g., "SAVINGS", "CHECKING", "LOAN"
     @Column(nullable = false)
     private BigDecimal balance;
 

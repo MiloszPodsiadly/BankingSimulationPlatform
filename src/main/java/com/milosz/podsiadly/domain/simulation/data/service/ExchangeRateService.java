@@ -2,6 +2,7 @@ package com.milosz.podsiadly.domain.simulation.data.service;
 
 import com.milosz.podsiadly.domain.simulation.data.api.ExchangeRateApiClient;
 import com.milosz.podsiadly.domain.simulation.data.dto.FixerIoResponse;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Getter
 public class ExchangeRateService {
 
     private final ExchangeRateApiClient exchangeRateApiClient;

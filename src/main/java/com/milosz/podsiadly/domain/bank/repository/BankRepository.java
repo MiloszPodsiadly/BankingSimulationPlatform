@@ -2,8 +2,10 @@ package com.milosz.podsiadly.domain.bank.repository;
 
 
 import com.milosz.podsiadly.domain.bank.model.Bank;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
 
 import java.util.Optional;
 

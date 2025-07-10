@@ -1,5 +1,6 @@
 package com.milosz.podsiadly.domain.bank.service;
 import com.milosz.podsiadly.common.exception.ResourceNotFoundException;
+import com.milosz.podsiadly.domain.bank.dto.AccountDto;
 import com.milosz.podsiadly.domain.user.repository.UserRepository;
 import com.milosz.podsiadly.domain.bank.model.Bank;
 import com.milosz.podsiadly.domain.bank.model.BankAccount;
@@ -30,38 +31,46 @@ public class AccountService {
     private final AuditService auditService;
     private final UserRepository userRepository;
     private final TransactionService transactionService;
+    // --- RENAMED AND MODIFIED METHOD ---
     @Transactional
-    public BankAccount createAccount(Long userId, String accountType, String currency, String username) {
-        log.info("Attempting to create a new {} account for user {}", accountType, userId);
+    public BankAccount createBankAccount(Long userId, Long bankId, String accountType, String currency, String username) {
+        log.info("Attempting to create a new {} account for user {} at bank {}", accountType, userId, bankId);
 
-        // Fetch user to link account (assuming user exists)
-        // In a real app, you might validate user existence more thoroughly
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
+        // Fetch the Bank entity
+        Bank bank = bankRepository.findById(bankId)
+                .orElseThrow(() -> new ResourceNotFoundException("Bank not found with id: " + bankId));
+
         BankAccount newAccount = BankAccount.builder()
-                .accountNumber(UUID.randomUUID().toString()) // Generate unique account number
-                .accountType(accountType)
-                .balance(BigDecimal.ZERO)
+                .accountNumber(generateUniqueAccountNumber()) // Use a dedicated method for this
+                .accountType(accountType) // Set the account type
+                .balance(BigDecimal.ZERO) // Initial balance is typically zero on creation
                 .currency(currency)
                 .status(BankAccount.AccountStatus.ACTIVE)
-                .createdAt(LocalDateTime.now())
-                .userId(userId) // Link to the user
+                // createdAt and updatedAt are handled by @PrePersist
+                .userId(userId)
+                .bank(bank) // Set the associated Bank
                 .build();
 
         BankAccount savedAccount = bankAccountRepository.save(newAccount);
 
-        // Log successful account creation
         auditService.logEvent(
                 username,
                 "ACCOUNT_CREATED",
                 "BankAccount",
                 savedAccount.getId(),
-                "New account created for user " + userId + ". Type: " + accountType + ", Currency: " + currency,
+                "New account created for user " + userId + ". Type: " + accountType + ", Currency: " + currency + ", Bank: " + bank.getName(),
                 AuditLog.AuditStatus.SUCCESS
         );
         log.info("Account {} created successfully for user {}.", savedAccount.getAccountNumber(), userId);
         return savedAccount;
+    }
+
+    // New helper method for account number generation
+    private String generateUniqueAccountNumber() {
+        return "ACC-" + UUID.randomUUID().toString().substring(0, 10).toUpperCase();
     }
 
     @Transactional(readOnly = true)
@@ -98,25 +107,39 @@ public class AccountService {
     }
 
     @Transactional
-    public BankAccount updateAccountStatus(Long accountId, BankAccount.AccountStatus newStatus, String username) {
-        log.info("User {} attempting to update status of account {} to {}", username, accountId, newStatus);
-        BankAccount account = bankAccountRepository.findById(accountId)
-                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
+    public BankAccount updateAccount(Long id, AccountDto accountDto, String username) { // Added username for auditing
+        log.info("User {} attempting to update account ID {}", username, id);
 
-        BankAccount.AccountStatus oldStatus = account.getStatus();
-        account.setStatus(newStatus);
-        BankAccount updatedAccount = bankAccountRepository.save(account);
+        BankAccount existingAccount = bankAccountRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + id));
 
-        // Log account status update
+        // Apply updates from DTO to the existing entity
+        // Only update fields that are meant to be changeable via PUT
+        if (accountDto.balance() != null) {
+            existingAccount.setBalance(accountDto.balance());
+        }
+        if (accountDto.currency() != null && !accountDto.currency().isBlank()) {
+            existingAccount.setCurrency(accountDto.currency());
+        }
+        if (accountDto.status() != null) {
+            existingAccount.setStatus(accountDto.status());
+        }
+        // accountNumber, userId, bank, createdAt are typically NOT updated via this method.
+        // If accountType is also updatable, add: existingAccount.setAccountType(accountDto.getAccountType());
+
+        existingAccount.setUpdatedAt(LocalDateTime.now()); // Update timestamp
+
+        BankAccount updatedAccount = bankAccountRepository.save(existingAccount);
+
         auditService.logEvent(
                 username,
-                "ACCOUNT_STATUS_UPDATED",
+                "ACCOUNT_UPDATED",
                 "BankAccount",
-                accountId,
-                "Account " + account.getAccountNumber() + " status changed from " + oldStatus + " to " + newStatus,
+                id,
+                "Account " + updatedAccount.getAccountNumber() + " updated. New status: " + updatedAccount.getStatus(),
                 AuditLog.AuditStatus.SUCCESS
         );
-        log.info("Account {} status updated to {}", accountId, newStatus);
+        log.info("Account {} updated successfully by user {}.", updatedAccount.getAccountNumber(), username);
         return updatedAccount;
     }
         // Zakładamy, że bank i userId nie mogą być zmieniane po utworzeniu konta

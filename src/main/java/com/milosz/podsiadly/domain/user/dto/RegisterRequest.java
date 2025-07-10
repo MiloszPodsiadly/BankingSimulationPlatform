@@ -15,12 +15,12 @@ public record RegisterRequest(
         String username,
 
         @NotBlank(message = "Password cannot be blank")
-        @ValidPassword // Dodajemy adnotację do walidacji złożoności hasła
+        @ValidPassword
         String password,
 
         @NotBlank(message = "Email cannot be blank")
         @Email(message = "Email should be valid")
-        @UniqueEmailValidator // Dodajemy adnotację do walidacji unikalności emaila
+        @UniqueEmailValidator
         String email,
 
         @NotBlank(message = "First name cannot be blank")
@@ -29,5 +29,7 @@ public record RegisterRequest(
         @NotBlank(message = "Last name cannot be blank")
         String lastName,
 
-        Set<UserRole> roles
+        Set<UserRole> roles,
+
+        boolean active // ← TO dodaj
 ) {}

@@ -17,7 +17,6 @@ import java.util.function.Function;
  * This can be extended with external rule engines (e.g., Drools) or custom rule definitions.
  */
 @Component // Can be @Service as well, @Component is more generic
-@RequiredArgsConstructor
 @Slf4j
 public class ComplianceRuleEngine {
 

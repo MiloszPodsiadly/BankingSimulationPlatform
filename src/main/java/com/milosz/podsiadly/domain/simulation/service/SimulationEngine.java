@@ -47,41 +47,49 @@ public class SimulationEngine {
         SimulationScenario scenario = simulationScenarioRepository.findById(scenarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("SimulationScenario not found with ID: " + scenarioId));
 
-        SimulationRun newRun = SimulationRun.builder()
+        SimulationRun initialRun = SimulationRun.builder() // Use a new variable name for clarity
                 .simulationScenario(scenario)
                 .status(RunStatus.PENDING)
                 .build();
-        newRun = simulationRunRepository.save(newRun);
-        log.info("Simulation run {} (Scenario: {}) created with status PENDING.", newRun.getRunIdentifier(), scenario.getScenarioName());
+        initialRun = simulationRunRepository.save(initialRun); // This is the final assignment to initialRun
 
-        final Long runId = newRun.getId(); // Capture runId for async task
+        // Capture the ID of the saved run. This ID will be effectively final.
+        final Long runId = initialRun.getId();
+        final String runIdentifier = initialRun.getRunIdentifier(); // Also capture the identifier if needed
+
+        log.info("Simulation run {} (Scenario: {}) created with status PENDING.", runIdentifier, scenario.getScenarioName());
 
         // Run the simulation in a separate thread to avoid blocking the API call
         Future<?> future = simulationExecutor.submit(() -> {
             try {
-                SimulationRun currentRun = simulationRunRepository.findById(runId)
+                // Fetch the SimulationRun again inside the async task to ensure it's managed
+                // within the new transaction context and reflects any changes.
+                SimulationRun currentRunInThread = simulationRunRepository.findById(runId)
                         .orElseThrow(() -> new IllegalStateException("SimulationRun not found after initiation."));
-                currentRun.setStatus(RunStatus.RUNNING);
-                simulationRunRepository.save(currentRun);
-                log.info("Simulation run {} (Scenario: {}) is now RUNNING.", currentRun.getRunIdentifier(), scenario.getScenarioName());
+
+                currentRunInThread.setStatus(RunStatus.RUNNING);
+                // No need to save here if the `processTransaction` or subsequent steps
+                // will save it. But saving it here provides immediate status update.
+                simulationRunRepository.save(currentRunInThread);
+                log.info("Simulation run {} (Scenario: {}) is now RUNNING.", runIdentifier, scenario.getScenarioName());
 
                 // 1. Generate events
-                List<ScenarioEvent> generatedEvents = scenarioGenerator.generateEventsForScenario(currentRun, scenario);
-                currentRun.setGeneratedEventsCount((long) generatedEvents.size());
-                simulationRunRepository.save(currentRun); // Update count before injection
+                List<ScenarioEvent> generatedEvents = scenarioGenerator.generateEventsForScenario(currentRunInThread, scenario);
+                currentRunInThread.setGeneratedEventsCount((long) generatedEvents.size());
+                // simulationRunRepository.save(currentRunInThread); // Can save here or later
 
                 // 2. Inject events into the core banking domain
-                int injectedCount = simulationDataInjector.injectEvents(currentRun, generatedEvents);
+                int injectedCount = simulationDataInjector.injectEvents(currentRunInThread, generatedEvents);
 
                 // 3. Update simulation run status
-                currentRun.setStatus(RunStatus.COMPLETED);
-                currentRun.setEndTime(LocalDateTime.now());
-                currentRun.setResultSummary(String.format("Simulation completed. Generated %d events, injected %d.", generatedEvents.size(), injectedCount));
-                simulationRunRepository.save(currentRun);
-                log.info("Simulation run {} (Scenario: {}) COMPLETED. Result: {}", currentRun.getRunIdentifier(), scenario.getScenarioName(), currentRun.getResultSummary());
+                currentRunInThread.setStatus(RunStatus.COMPLETED);
+                currentRunInThread.setEndTime(LocalDateTime.now());
+                currentRunInThread.setResultSummary(String.format("Simulation completed. Generated %d events, injected %d.", generatedEvents.size(), injectedCount));
+                simulationRunRepository.save(currentRunInThread); // Final save
+                log.info("Simulation run {} (Scenario: {}) COMPLETED. Result: {}", runIdentifier, scenario.getScenarioName(), currentRunInThread.getResultSummary());
 
             } catch (Exception e) {
-                log.error("Simulation run {} (Scenario: {}) FAILED: {}", runId, scenario.getScenarioName(), e.getMessage(), e);
+                log.error("Simulation run {} (Scenario: {}) FAILED: {}", runIdentifier, scenario.getScenarioName(), e.getMessage(), e);
                 // Update status to FAILED
                 simulationRunRepository.findById(runId).ifPresent(failedRun -> {
                     failedRun.setStatus(RunStatus.FAILED);
@@ -90,12 +98,12 @@ public class SimulationEngine {
                     simulationRunRepository.save(failedRun);
                 });
             } finally {
-                runningSimulations.remove(newRun.getRunIdentifier()); // Remove from active list
+                runningSimulations.remove(runIdentifier); // Remove from active list
             }
         });
-        runningSimulations.put(newRun.getRunIdentifier(), future); // Keep track of the future
+        runningSimulations.put(runIdentifier, future); // Keep track of the future
 
-        return newRun;
+        return initialRun; // Return the initialRun instance which is now saved and has an ID
     }
 
     /**

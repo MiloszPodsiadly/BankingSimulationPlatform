@@ -63,4 +63,8 @@ public class BankService {
         // Należy rozważyć obsługę kont bankowych powiązanych z tym bankiem przed usunięciem
         bankRepository.deleteById(id);
     }
+    @Transactional(readOnly = true)
+    public Optional<Bank> getBankByBic(String bic) {
+        return bankRepository.findByBic(bic);
+    }
 }

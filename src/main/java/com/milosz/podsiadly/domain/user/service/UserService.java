@@ -129,12 +129,13 @@ public class UserService {
 
         Set<Role> updatedRoles = new HashSet<>();
         if (roleNames != null && !roleNames.isEmpty()) {
-            roleNames.forEach(roleName -> {
+            for (UserRole roleName : roleNames) {
                 Role role = roleRepository.findByName(roleName)
                         .orElseThrow(() -> new ResourceNotFoundException("Role '" + roleName.name() + "' not found."));
                 updatedRoles.add(role);
-            });
-        } else {
+            }
+
+    } else {
             // Keep existing roles if none provided for update, or set a default if desired
             log.warn("No roles provided for user update. Keeping existing roles for user ID: {}", id);
             updatedRoles = existingUser.getRoles(); // Or assign a default if null/empty roles are allowed for update

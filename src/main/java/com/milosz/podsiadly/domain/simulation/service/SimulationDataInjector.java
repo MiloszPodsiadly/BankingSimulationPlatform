@@ -2,10 +2,10 @@ package com.milosz.podsiadly.domain.simulation.service;
 
 import com.milosz.podsiadly.domain.bank.model.BankAccount;
 import com.milosz.podsiadly.domain.bank.model.Transaction;
-import com.milosz.podsiadly.domain.bank.model.User;
+import com.milosz.podsiadly.domain.user.model.User;
 import com.milosz.podsiadly.domain.bank.service.AccountService;
 import com.milosz.podsiadly.domain.bank.service.TransactionService;
-import com.milosz.podsiadly.domain.bank.service.UserService;
+import com.milosz.podsiadly.domain.user.service.UserService;
 import com.milosz.podsiadly.domain.risk.model.RiskAssessment;
 import com.milosz.podsiadly.domain.risk.service.RiskCalculationService;
 import com.milosz.podsiadly.domain.simulation.model.ScenarioEvent;

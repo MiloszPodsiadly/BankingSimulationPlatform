@@ -191,56 +191,37 @@ public class TransactionService {
         return transactionRepository.findAll();
     }
     @Transactional
-    public Transaction createTransaction(Long fromAccountId, Long toAccountId, BigDecimal amount, String description, String username) {
-        log.info("Attempting to create transaction from account {} to {} for amount {}", fromAccountId, toAccountId, amount);
+    public Transaction createDepositTransaction(Long targetAccountId, BigDecimal amount, String currency, String description, LocalDateTime transactionDateTime) {
+        log.info("Recording deposit of {} {} to account ID {}", amount, currency, targetAccountId);
 
-        BankAccount fromAccount = bankAccountRepository.findById(fromAccountId)
-                .orElseThrow(() -> new ResourceNotFoundException("From Account not found with id: " + fromAccountId));
-        BankAccount toAccount = bankAccountRepository.findById(toAccountId)
-                .orElseThrow(() -> new ResourceNotFoundException("To Account not found with id: " + toAccountId));
+        // Fetch the target bank account
+        BankAccount targetAccount = bankAccountRepository.findById(targetAccountId)
+                .orElseThrow(() -> new EntityNotFoundException("Target account with ID " + targetAccountId + " not found for deposit."));
 
-        if (fromAccount.getBalance().compareTo(amount) < 0) {
-            // Log failure before throwing exception
-            auditService.logEvent(
-                    username,
-                    "TRANSACTION_FAILED_INSUFFICIENT_FUNDS",
-                    "BankAccount",
-                    fromAccountId,
-                    "Attempted transfer of " + amount + " from account " + fromAccountId + " to " + toAccountId + ". Insufficient funds. Balance: " + fromAccount.getBalance(),
-                    AuditLog.AuditStatus.FAILURE
-            );
-            throw new InsufficientFundsException("Account " + fromAccountId + " has insufficient funds for transaction.");
+        // Basic validation (e.g., currency match)
+        if (!targetAccount.getCurrency().equalsIgnoreCase(currency)) {
+            throw new IllegalArgumentException("Currency mismatch for deposit. Expected: " + targetAccount.getCurrency() + ", Got: " + currency);
         }
 
-        fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
-        toAccount.setBalance(toAccount.getBalance().add(amount));
+        // Update the account balance
+        targetAccount.setBalance(targetAccount.getBalance().add(amount));
+        bankAccountRepository.save(targetAccount); // Save the updated account balance
 
-        bankAccountRepository.save(fromAccount);
-        bankAccountRepository.save(toAccount);
-
+        // Create the transaction record
         Transaction transaction = Transaction.builder()
-                .transactionRef(UUID.randomUUID().toString())
-                .sourceAccount(fromAccount)
-                .targetAccount(toAccount)
+                .sourceAccount(null) // For a deposit, the source is external to the system, so 'null' or a special system account
+                .targetAccount(targetAccount)
                 .amount(amount)
-                .currency(fromAccount.getCurrency()) // Assuming same currency
-                .transactionType(Transaction.TransactionType.TRANSFER)
+                .currency(currency)
                 .description(description)
-                .transactionDate(LocalDateTime.now())
+                .type(Transaction.TransactionType.DEPOSIT) // Make sure this enum value exists in Transaction.java
+                .status(Transaction.TransactionStatus.COMPLETED) // Correct // Make sure this enum value exists
+                .transactionDate(transactionDateTime)
                 .build();
 
+        // Save the transaction record
         Transaction savedTransaction = transactionRepository.save(transaction);
-
-        // Log successful transaction
-        auditService.logEvent(
-                username,
-                "TRANSACTION_CREATED",
-                "Transaction",
-                savedTransaction.getId(),
-                "Transfer of " + amount + " from account " + fromAccountId + " to " + toAccountId + " successful. Transaction Ref: " + savedTransaction.getTransactionRef(),
-                AuditLog.AuditStatus.SUCCESS
-        );
-        log.info("Transaction {} created successfully.", savedTransaction.getId());
+        log.info("Deposit transaction recorded: {}", savedTransaction.getId());
         return savedTransaction;
     }
     @Transactional
@@ -313,5 +294,34 @@ public class TransactionService {
                 .transactionDate(LocalDateTime.now())
                 .build();
         return transactionRepository.save(transaction);
+    }
+    @Transactional
+    public Transaction createTransferTransaction(Long sourceAccountId, String targetAccountNumber,
+                                                 BigDecimal amount, String currency, String description,
+                                                 LocalDateTime transactionDateTime) {
+        log.info("Initiating transfer from account ID {} to account number {} for amount {} {}",
+                sourceAccountId, targetAccountNumber, amount, currency);
+
+        BankAccount sourceAccount = bankAccountRepository.findById(sourceAccountId)
+                .orElseThrow(() -> new EntityNotFoundException("Source account with ID " + sourceAccountId + " not found."));
+
+        BankAccount targetAccount = bankAccountRepository.findByAccountNumber(targetAccountNumber)
+                .orElseThrow(() -> new EntityNotFoundException("Target account with number " + targetAccountNumber + " not found."));
+
+        if (!sourceAccount.getCurrency().equalsIgnoreCase(currency) || !targetAccount.getCurrency().equalsIgnoreCase(currency)) {
+            throw new IllegalArgumentException("Currency mismatch for transfer transaction. Source: " + sourceAccount.getCurrency() + ", Target: " + targetAccount.getCurrency() + ", Transaction: " + currency);
+        }
+
+        Transaction newTransaction = Transaction.builder()
+                .sourceAccount(sourceAccount)
+                .targetAccount(targetAccount)
+                .amount(amount)
+                .currency(currency)
+                .description(description)
+                .type(Transaction.TransactionType.TRANSFER)
+                .transactionDate(transactionDateTime)
+                .build();
+
+        return processTransaction(newTransaction);
     }
 }
