@@ -35,7 +35,7 @@ public class FixerIoClientImpl implements FixerIoClient {
 
     @Override
     public FixerLatestRatesResponse getLatestRates(String baseCurrency, List<String> targetCurrencies) {
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(baseUrl + "/latest")
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(baseUrl + "/latest")
                 .queryParam("access_key", accessKey);
 
         if (baseCurrency != null && !baseCurrency.isBlank()) {

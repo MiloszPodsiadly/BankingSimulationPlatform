@@ -65,7 +65,9 @@ public class WorldBankClientImpl implements WorldBankClient {
         // Building URI
         UriComponentsBuilder uriBuilder = UriComponentsBuilder
                 .fromUriString(baseUrl + "/country/{countryCode}/indicator/{indicatorId}")
-                .queryParam("format", "json");
+                .queryParam("format", "json")
+                .queryParam("date", "2021:2022");
+
 
         if (dateFrom != null && !dateFrom.isBlank() && dateTo != null && !dateTo.isBlank()) {
             uriBuilder.queryParam("date", dateFrom + ":" + dateTo);  // ✅ valid syntax

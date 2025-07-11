@@ -64,7 +64,7 @@ public class NewsApiClientImpl implements NewsApiClient {
             throw new NewsApiException(errorMessage);
         }
     }
-    /*
+
     @Override
     public NewsApiResponse getArticlesEverything(String query, String language, Integer pageSize, Integer page) {
         UriComponentsBuilder uriBuilder = UriComponentsBuilder
@@ -86,7 +86,7 @@ public class NewsApiClientImpl implements NewsApiClient {
 
         return executeApiCall(uriBuilder, "everything");
     }
-*/
+
     @Override
     public NewsApiResponse getTopHeadlines(String country, String category, Integer pageSize, Integer page) {
         UriComponentsBuilder uriBuilder = UriComponentsBuilder

@@ -24,10 +24,10 @@ public class JwtTokenProvider {
     private String jwtSecret;
 
     @Value("${app.jwt.expiration-ms}")
-    private int jwtExpirationMs;
+    private long jwtExpirationMs;
 
     @Value("${app.jwt.refresh-expiration-ms}")
-    private int jwtRefreshExpirationMs;
+    private long jwtRefreshExpirationMs;
 
     private SecretKey getSigningKey() {
         // Upewnij się, że jwtSecret jest wystarczająco długi i bezpieczny (np. 32 bajty dla HS256)

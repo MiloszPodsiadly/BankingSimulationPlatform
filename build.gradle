@@ -3,7 +3,6 @@
         id 'org.springframework.boot' version '3.3.1' // Zmieniono na stabilną wersję
         id 'io.spring.dependency-management' version '1.1.7'
         id 'idea' // Ta wtyczka jest OK i przydatna
-        // USUNIĘTO: id 'org.gradle.java.compile-and-fork' version '0.1.0'
     }
 
     group = 'com.bankingsimulationplatform'
