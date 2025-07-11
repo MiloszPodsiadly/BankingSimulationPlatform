@@ -76,8 +76,8 @@ api:
 app:
   jwt:
     secret: yourSuperSecretKeyForInternalJwtSigningDoNotUseInProd
-    expiration-ms: 86400000
-    refresh-expiration-ms: 172800000
+    expiration-ms: 86400000000000
+    refresh-expiration-ms: 172800000000000
 ---
 # Profil: test
 spring:
@@ -162,5 +162,5 @@ api:
 app:
   jwt:
     secret: testSecretKey
-    expiration-ms: 3600000
-    refresh-expiration-ms: 172800000
+    expiration-ms: 3600000000000
+    refresh-expiration-ms: 172800000000000
